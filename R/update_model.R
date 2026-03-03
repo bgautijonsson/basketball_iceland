@@ -4,14 +4,15 @@ box::use(
 )
 
 end_date <- Sys.Date()
-sex <- "male"
 
-fit_model(
-  sex = sex,
-  refresh = 100,
-  iter_warmup = 1000,
-  iter_sampling = 1000,
-  end_date = end_date
-)
+for (sex in c("male", "female")) {
+  fit_model(
+    sex = sex,
+    refresh = 100,
+    iter_warmup = 1000,
+    iter_sampling = 1000,
+    end_date = end_date
+  )
 
-generate_model_results(sex, end_date = end_date)
+  generate_model_results(sex, end_date = end_date)
+}

@@ -32,38 +32,42 @@ path_2026 <- here("data", "male", "div2", "2026.xlsx")
 download.file(url_2026, path_2026, mode = "wb")
 # fixed_file <- repair_excel_file_mac(path_2026)
 
-div1 <- here("data", "male", "div1") |> 
-  list.files(full.names = TRUE, pattern = "^[0-9]+") |> 
+div1 <- here("data", "male", "div1") |>
+  list.files(full.names = TRUE, pattern = "^[0-9]+") |>
   map(
-    \(x) read_excel(
-      x, 
-      sheet = 1, 
-      skip = 1,
-      col_types = "text"
-    ) |> 
-      mutate(
-        timabil = str_sub(x, start = -8, end = -5) |> parse_number()
-      )
-  ) |> 
-  list_rbind() |> 
+    \(x) {
+      read_excel(
+        x,
+        sheet = 1,
+        skip = 1,
+        col_types = "text"
+      ) |>
+        mutate(
+          timabil = str_sub(x, start = -8, end = -5) |> parse_number()
+        )
+    }
+  ) |>
+  list_rbind() |>
   mutate(
     division = 1
   )
 
-div2 <- here("data", "male", "div2") |> 
-  list.files(full.names = TRUE, pattern = "^[0-9]+") |> 
+div2 <- here("data", "male", "div2") |>
+  list.files(full.names = TRUE, pattern = "^[0-9]+") |>
   map(
-    \(x) read_excel(
-      x, 
-      sheet = 1, 
-      skip = 1,
-      col_types = "text"
-    ) |> 
-      mutate(
-        timabil = str_sub(x, start = -8, end = -5) |> parse_number()
-      )
-  ) |> 
-  list_rbind() |> 
+    \(x) {
+      read_excel(
+        x,
+        sheet = 1,
+        skip = 1,
+        col_types = "text"
+      ) |>
+        mutate(
+          timabil = str_sub(x, start = -8, end = -5) |> parse_number()
+        )
+    }
+  ) |>
+  list_rbind() |>
   mutate(
     division = 2
   )
@@ -72,50 +76,55 @@ div2 <- here("data", "male", "div2") |>
 bind_rows(
   div1,
   div2
-) |> 
-  drop_na() |> 
-  janitor::clean_names() |> 
+) |>
+  drop_na() |>
+  janitor::clean_names() |>
   select(
-    timabil, 
+    timabil,
     division,
     dags,
     heima = heimalid,
     gestir = gestalid,
     stig
-  ) |> 
-  separate(stig, into = c("stig_heima", "stig_gestir"), sep = "-", convert = TRUE) |> 
+  ) |>
+  separate(
+    stig,
+    into = c("stig_heima", "stig_gestir"),
+    sep = "-",
+    convert = TRUE
+  ) |>
   mutate(
     dags = dmy(dags),
     timabil = year(dags) + 1 * (month(dags) > 7)
-  ) |> 
+  ) |>
   write_csv(
     here("data", "male", "data.csv")
   )
 
 
-schedule_div1 <- here("data", "male", "div1", "next_games.xlsx") |> 
-  read_excel(sheet = 1, skip = 1) |> 
-  janitor::clean_names() |> 
+schedule_div1 <- here("data", "male", "div1", "next_games.xlsx") |>
+  read_excel(sheet = 1, skip = 1) |>
+  janitor::clean_names() |>
   select(
     dags,
     heima = heimalid,
     gestir = gestalid
-  ) |> 
-  drop_na(dags) |> 
+  ) |>
+  drop_na(dags) |>
   mutate(
     dags = dmy(dags),
     division = 1
   )
 
-schedule_div2 <- here("data", "male", "div2", "next_games.xlsx") |> 
-  read_excel(sheet = 1, skip = 1) |> 
-  janitor::clean_names() |> 
+schedule_div2 <- here("data", "male", "div2", "next_games.xlsx") |>
+  read_excel(sheet = 1, skip = 1) |>
+  janitor::clean_names() |>
   select(
     dags,
     heima = heimalid,
     gestir = gestalid
-  ) |> 
-  drop_na(dags) |> 
+  ) |>
+  drop_na(dags) |>
   mutate(
     dags = dmy(dags),
     division = 2
@@ -124,8 +133,8 @@ schedule_div2 <- here("data", "male", "div2", "next_games.xlsx") |>
 bind_rows(
   schedule_div1,
   schedule_div2
-) |> 
-  arrange(dags) |> 
+) |>
+  arrange(dags) |>
   write_csv(
     here("data", "male", "schedule.csv")
   )

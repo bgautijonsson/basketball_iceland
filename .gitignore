@@ -2,3 +2,18 @@
 **/**.xlsx
 **/**.rds
 **/**.csv
+.Rproj.user
+.claude/
+
+# Auto-generated agent files
+AGENTS.md
+
+# Scratch images
+*.png
+!results/**/*.png
+
+# Scratch image directories
+images/
+
+# Auto-generated agent files
+AGENTS.md

@@ -16,24 +16,24 @@ bet_digits <- 1
 # What's my current pool size?
 cur_pool <- 150
 
-odds <- c("Niðurstaða") |> 
+odds <- c("Niðurstaða") |>
   map(
     \(x) read_sheet(odds_sheet, sheet = x)
-  ) |> 
-  list_rbind()  |> 
-  fill(date_obs) |> 
+  ) |>
+  list_rbind() |>
+  fill(date_obs) |>
   mutate_at(
     vars(contains("date")),
     as_date
   )
 
 
-change <- c("Forgjöf") |> 
+change <- c("Forgjöf") |>
   map(
     \(x) read_sheet(odds_sheet, sheet = x)
-  ) |> 
-  list_rbind()  |> 
-  fill(date_obs, booker) |> 
+  ) |>
+  list_rbind() |>
+  fill(date_obs, booker) |>
   mutate_at(
     vars(contains("date")),
     as_date
@@ -43,67 +43,76 @@ change <- c("Forgjöf") |>
     gestir = away
   )
 
-points <- c("Mörk") |> 
+points <- c("Mörk") |>
   map(
     \(x) read_sheet(odds_sheet, sheet = x)
-  ) |> 
-  list_rbind()  |> 
-  fill(date_obs, booker) |> 
+  ) |>
+  list_rbind() |>
+  fill(date_obs, booker) |>
   mutate_at(
     vars(contains("date")),
     as_date
-  ) |> 
+  ) |>
   rename(
     heima = home,
     gestir = away
   )
 
-game <- read_csv(here("Basketball", "results", "next_games_post_kvk.csv")) |> 
-  filter(heima == "Aþena") |> 
+game <- read_csv(here("Basketball", "results", "next_games_post_kvk.csv")) |>
+  filter(heima == "Aþena") |>
   select(
-    iteration = .iteration, 
-    home = heima, 
-    away = gestir, 
-    home_goals = heima_stig, 
+    iteration = .iteration,
+    home = heima,
+    away = gestir,
+    home_goals = heima_stig,
     away_goals = gestir_stig
-    )
-
-
-outcome <- odds |> 
-  filter(home == "Aþena", away == "Stjarnan") |> 
-  slice(1) |> 
-  select(
-    home, away, o_home, o_away
   )
 
-total_goals <- points |> 
+
+outcome <- odds |>
+  filter(home == "Aþena", away == "Stjarnan") |>
+  slice(1) |>
+  select(
+    home,
+    away,
+    o_home,
+    o_away
+  )
+
+total_goals <- points |>
   rename(
     home = heima
-  ) |> 
-  filter(home == "Aþena", gestir == "Stjarnan") |> 
-  slice(1) |> 
+  ) |>
+  filter(home == "Aþena", gestir == "Stjarnan") |>
+  slice(1) |>
   select(
-    home, 
-    away = gestir, limit, o_over, o_under
+    home,
+    away = gestir,
+    limit,
+    o_over,
+    o_under
   )
 
-handicap <- change |> 
-  filter(heima == "Aþena", gestir == "Stjarnan") |> 
-  slice(1) |> 
+handicap <- change |>
+  filter(heima == "Aþena", gestir == "Stjarnan") |>
+  slice(1) |>
   select(
-    home = heima, 
-    away = gestir, change, o_home, o_away
+    home = heima,
+    away = gestir,
+    change,
+    o_home,
+    o_away
   )
 
-results <- game |> 
+results <- game |>
   inner_join(
-    total_goals |> 
+    total_goals |>
       select(home, away, limit)
-  ) |> 
+  ) |>
   inner_join(
-    handicap |> 
+    handicap |>
       select(home, away, change)
-  ) |> 
+  ) |>
   mutate(
     total_goals = home_goals + away_goals,
     outcome_home = 1 * (home_goals > away_goals),
@@ -114,8 +123,8 @@ results <- game |>
     handicap_away = 1 * (home_goals + change < away_goals)
   )
 
-result_matrix <- results |> 
-  select(outcome_home:handicap_away) |> 
+result_matrix <- results |>
+  select(outcome_home:handicap_away) |>
   as.matrix()
 
 o <- c(
@@ -127,7 +136,7 @@ o <- c(
   handicap$o_away
 )
 
-names(o) <- c("home",  "away", "over", "under", "h_home", "h_away")
+names(o) <- c("home", "away", "over", "under", "h_home", "h_away")
 
 b <- o - 1
 
@@ -136,22 +145,22 @@ m <- ncol(result_matrix)
 library(nloptr)
 
 
-
-
 opt_fun <- function(f, gamma = 2) {
   o <- c(o, 1)
   X <- cbind(result_matrix, 1)
-  
+
   R <- X %*% (o * f)
-  
-  if (min(R) < 1e-8) return(-1e5)
-  
+
+  if (min(R) < 1e-8) {
+    return(-1e5)
+  }
+
   if (gamma == 1) {
     mean(log(R))
   } else {
-    mean((R^(1 - gamma) - 1)/(1 - gamma))
+    mean((R^(1 - gamma) - 1) / (1 - gamma))
   }
-  
+
   R
 }
 
@@ -169,12 +178,13 @@ result <- nloptr(
   x0 = f_init,
   eval_f = function(f) -opt_fun(f, gamma = 2), # Negative to maximize
   eval_g_eq = function(f) constraint(f), # Inequality constraint
-  lb = lb, ub = ub, # Bound constraints
+  lb = lb,
+  ub = ub, # Bound constraints
   opts = list(
-    "algorithm" = "NLOPT_LN_COBYLA", 
+    "algorithm" = "NLOPT_LN_COBYLA",
     # "xtol_rel" = 1e-8,
     maxeval = 1e4
-    )
+  )
 )
 
 
@@ -196,14 +206,14 @@ R |> table() |> prop.table()
 
 tibble(
   bet = names(o),
-  o  = o,
+  o = o,
   f = round(f[1:m], 2),
   p = colMeans(result_matrix),
   p_o = 1 / o,
-) |> 
+) |>
   mutate(
     ev = p * o - (1 - p)
-  ) 
+  )
 
 
 # Multi-constraint utility function with nloptr
@@ -212,41 +222,41 @@ multi_constraint_utility <- function() {
   obj_fun <- function(f) {
     o <- c(o, 1)
     X <- cbind(result_matrix, 1)
-    
+
     R <- X %*% (o * f)
-    mean(R)  # Maximize excess return
+    mean(R) # Maximize excess return
   }
-  
+
   eq_constraints <- list(
     # Constraint 1: sum(f) <= 1
     function(f) sum(f) - 1
   )
-  
+
   # Constraint functions
   ineq_constraints <- list(
     # Constraint 1: Probability of loss <= 0.05
     function(f) {
       o <- c(o, 1)
       X <- cbind(result_matrix, 1)
-      
+
       R <- X %*% (o * f)
       mean(R < 1) - 0.3
     },
-    
+
     # Constraint 2: 5% VaR >= 0.9 (lose at most 10% in worst 5% of cases)
     function(f) {
       o <- c(o, 1)
       X <- cbind(result_matrix, 1)
-      
+
       R <- X %*% (o * f)
       0.5 - quantile(R, 0.05)
     }
   )
-  
+
   # Run optimization with multiple constraints
   result <- nloptr(
     x0 = f_init,
-    eval_f = function(f) -obj_fun(f),  # Negative for maximization
+    eval_f = function(f) -obj_fun(f), # Negative for maximization
     eval_g_eq = function(f) {
       sapply(eq_constraints, function(con) con(f))
     },
@@ -254,14 +264,15 @@ multi_constraint_utility <- function() {
       # Evaluate all constraints
       sapply(ineq_constraints, function(con) con(f))
     },
-    lb = lb, ub = ub,
+    lb = lb,
+    ub = ub,
     opts = list(
       "algorithm" = "NLOPT_LN_COBYLA",
       "xtol_rel" = 1e-8,
       maxeval = 1e4
     )
   )
-  
+
   return(result)
 }
 
@@ -288,11 +299,11 @@ R |> table() |> prop.table()
 
 tibble(
   bet = names(o),
-  o  = o,
+  o = o,
   f = round(f[1:m], 2),
   p = colMeans(result_matrix),
   p_o = 1 / o,
-) |> 
+) |>
   mutate(
     ev = p * o - (1 - p)
-  ) 
+  )

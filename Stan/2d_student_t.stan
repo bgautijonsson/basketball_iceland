@@ -21,7 +21,8 @@ data {
   matrix<lower = 0>[K, N_rounds] time_between_matches;  // Time difference between matches for each team and each round
   array[N] int<lower=0> goals1;       // Goals scored by   team 1 (home)
   array[N] int<lower=0> goals2;       // Goals scored by team 2 (away)
-  
+  array[N] int<lower=1> division;  // Division ID for each game (declared for shared data prep)
+
   // Prediction data
   int<lower = 0> N_top_teams;
   array[N_top_teams] int<lower=0> top_teams;
@@ -32,6 +33,7 @@ data {
   array[N_pred] int<lower=1, upper=K> team2_pred;  // Team 2 ID for each prediction game
   vector[N_pred] pred_timediff1;
   vector[N_pred] pred_timediff2;
+  array[N_pred] int<lower=1> pred_division;  // Division ID for prediction games (declared for shared data prep)
 }
 
 transformed data {
